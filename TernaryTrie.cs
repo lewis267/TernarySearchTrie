@@ -132,19 +132,35 @@ namespace Global.SearchTrie
             get { return size; }
         }
 
+        /// <summary>
+        /// Iterates over the Trie and collects the keys.
+        /// </summary>
         public ICollection<TKey> Keys
         {
             get
             {
-                throw new NotImplementedException();
+                ICollection<TKey> keys = new List<TKey>();
+                foreach (KeyValuePair<TKey, TValue> item in this)
+                {
+                    keys.Add(item.Key);
+                }
+                return keys;
             }
         }
 
+        /// <summary>
+        /// Iterates over the Trie and collects the values.
+        /// </summary>
         public ICollection<TValue> Values
         {
             get
             {
-                throw new NotImplementedException();
+                ICollection<TValue> values = new List<TValue>();
+                foreach (KeyValuePair<TKey, TValue> item in this)
+                {
+                    values.Add(item.Value);
+                }
+                return values;
             }
         }
 
@@ -503,20 +519,22 @@ namespace Global.SearchTrie
 
                     // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                     // TODO: set large fields to null.
-
                     disp = true;
                     waitHandle.Set();
-
+                    iteratorThread = null;
+                    trie = null;
+                    waitHandle.Dispose();
 
                     disposedValue = true;
                 }
             }
 
             // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-            // ~TernaryTrieEnumerator() {
-            //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            //   Dispose(false);
-            // }
+            ~TernaryTrieEnumerator()
+            {
+                // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+                Dispose(false);
+            }
 
             // This code added to correctly implement the disposable pattern.
             public void Dispose()
@@ -527,11 +545,6 @@ namespace Global.SearchTrie
                 // GC.SuppressFinalize(this);
             }
             #endregion
-
-            ~TernaryTrieEnumerator()
-            {
-                Dispose(false);
-            }
         }
 
         #endregion
