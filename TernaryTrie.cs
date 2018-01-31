@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 
 namespace Global.SearchTrie
@@ -18,25 +19,27 @@ namespace Global.SearchTrie
     /// <typeparam name="TKey">The item to be searched for (eg. string's).</typeparam>
     /// <typeparam name="TKeyPiece">The peices that the <paramref name="TKey"/> will be split into that are comparable (eg. char's).</typeparam>
     /// <typeparam name="TValue">The object to relate with <paramref name="TKey"/>.</typeparam>
-    public class TernarySearchTrie<TKey, TKeyPiece, TValue> : IDictionary<TKey, TValue> where TKey : IEnumerable<TKeyPiece> where TKeyPiece : IComparable
+    [DebuggerDisplay("Size={size}")]
+    public class TernarySearchTrie<TKey, TKeyPiece, TValue> : IDictionary<TKey, IList<TValue>>
+        where TKey : IEnumerable<TKeyPiece> where TKeyPiece : IComparable
     {
-        private Node root;
-        private int size = 0;
-        private bool modified = false;
+        protected Node root = new Node();
+        protected int size = 0;
+        protected bool modified = false;
 
         /// <summary>Represents a node of the tree.</summary>
         /// <remarks>Using fields instead of properties drops execution time by about 40%.</remarks>
         [DebuggerDisplay("Key={Key}, Value={Value}, Size={Next.Count}")]
-        private class Node
+        protected class Node
         {
             /// <summary>Gets or sets the node's key.</summary>
             public TKeyPiece Key;
 
             /// <summary>Gets or sets the node's value.</summary>
-            public TValue Value;
+            public List<TValue> Values = new List<TValue>();
 
             /// <summary>Gets or sets the next Node down.</summary>
-            public SortedDictionary<TKeyPiece, Node> Next;
+            public SortedDictionary<TKeyPiece, Node> Next = new SortedDictionary<TKeyPiece, Node>();
 
             /// <summary>Marks this node as containing data or not.</summary>
             public bool IsContainer = false;
@@ -47,33 +50,76 @@ namespace Global.SearchTrie
 
         /// <summary>
         /// Searches for a given pattern in the datastructure.
-        /// '*' is a open matcher.
-        /// '?' matches one char.
+        /// default(<typeparamref name="TKeyPiece"/>) will match anything.
         /// </summary>
         /// <param name="pattern">The pattern to match to.</param>
         /// <param name="ignoreCase">Set to true to ignore case when searching.</param>
         /// <returns></returns>
         public List<TValue> Search(TKey pattern)
         {
-            throw new NotImplementedException();
+            return collect(root, pattern.ToArray(), 0);
         }
+        protected List<TValue> collect(Node n, IList<TKeyPiece> pieces, int idx)
+        {
+            List<TValue> items = new List<TValue>();
+            if (n == null) return items;
+
+            if (idx < pieces.Count)
+            {
+                TKeyPiece tis = pieces[idx];
+
+                if (tis.Equals(default(TKeyPiece)))
+                {
+                    foreach (Node next in n.Next.Values)
+                    {
+                        items.AddRange(collect(next, pieces, idx + 1));
+                    }
+                }
+                else
+                {
+                    Node next;
+                    if (n.Next.TryGetValue(tis, out next))
+                    {
+                        items.AddRange(collect(next, pieces, idx + 1));
+                    }
+                }
+            }
+            else if (n.IsContainer) items.AddRange(n.Values);
+
+            return items;
+        }
+
         /// <summary>
         /// Searches through the datastructure for any items that 
         /// match the given pattern. If any <typeparamref name="TKeyPiece"/> 
-        /// is equivalent to <code>default(</code><typeparamref name="TKeyPiece"/>
-        /// <code>)</code> then it will be matched to any.
+        /// is equivalent to 
+        /// <code>default(</code><typeparamref name="TKeyPiece"/><code>)</code>
+        /// then it will be matched to any.
         /// </summary>
         /// <param name="pattern"></param>
         /// <returns></returns>
-        public List<TValue> Search(List<TKeyPiece> pattern)
+        public List<TValue> Search(IList<TKeyPiece> pattern)
         {
             throw new NotImplementedException();
         }
 
-        /// <summary>Adds the given <typeparamref name="TKey"/>/<typeparamref name="TValue"/>
-        /// pair to the Trie.</summary>
-        /// <param name="key">The location to place to <paramref name="item"/>.</param>
+        /// <summary>
+        /// Collects all items in the Trie with the given prefix.
+        /// </summary>
+        /// <param name="prefix">The prefix to match.</param>
+        /// <returns>A list of values with the given prefix.</returns>
+        public List<TValue> CollectAfter(IList<TKeyPiece> prefix)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Adds the given <typeparamref name="TKey" />/<typeparamref name="TValue" />
+        /// pair to the Trie.
+        /// </summary>
+        /// <param name="key">The location to place to <paramref name="item" />.</param>
         /// <param name="item">The object to place in the trie.</param>
+        /// <exception cref="ArgumentNullException">key</exception>
         public void Add(TKey key, TValue item)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
@@ -92,7 +138,7 @@ namespace Global.SearchTrie
         }
         /// <summary>Uses an Enumerator(<typeparamref name="TKeyPiece"/>)
         /// to advance through the <typeparamref name="TKey"/></summary>
-        private Node Add(TValue item, Node node, IEnumerator<TKeyPiece> enmrtr, TKey key)
+        protected Node Add(TValue item, Node node, IEnumerator<TKeyPiece> enmrtr, TKey key)
         {
             if (enmrtr.MoveNext())
             {
@@ -109,7 +155,6 @@ namespace Global.SearchTrie
                     // Make a new node
                     Node n = new Node();
                     n.Key = now;
-                    n.Next = new SortedDictionary<TKeyPiece, Node>();
 
                     // Go down a level
                     node.Next[now] = Add(item, n, enmrtr, key);
@@ -117,9 +162,9 @@ namespace Global.SearchTrie
             }
             else
             {
-                node.Value = item; // Assign the value
-                node.IsContainer = true;
+                node.Values.Add(item); // Assign the value
                 node.repValue = key;
+                node.IsContainer = true;
             }
             return node;
         }
@@ -140,7 +185,7 @@ namespace Global.SearchTrie
             get
             {
                 ICollection<TKey> keys = new List<TKey>();
-                foreach (KeyValuePair<TKey, TValue> item in this)
+                foreach (KeyValuePair<TKey, IList<TValue>> item in this)
                 {
                     keys.Add(item.Key);
                 }
@@ -151,16 +196,35 @@ namespace Global.SearchTrie
         /// <summary>
         /// Iterates over the Trie and collects the values.
         /// </summary>
-        public ICollection<TValue> Values
+        public ICollection<IList<TValue>> Values
         {
             get
             {
-                ICollection<TValue> values = new List<TValue>();
-                foreach (KeyValuePair<TKey, TValue> item in this)
+                ICollection<IList<TValue>> values = new List<IList<TValue>>();
+                foreach (KeyValuePair<TKey, IList<TValue>> item in this)
                 {
                     values.Add(item.Value);
                 }
                 return values;
+            }
+        }
+        protected void _getVals(KeyValuePair<TKey, IList<TValue>>[] array, int arrayIndex, Node node)
+        {
+            foreach (KeyValuePair<TKeyPiece, Node> pair in node.Next)
+            {
+                // Check if this is an instance of a pair
+                if (pair.Value.IsContainer)
+                {
+                    TKey key = pair.Value.repValue;
+                    IList<TValue> values = pair.Value.Values;
+
+                    // set the current item
+                    array[arrayIndex++] = new KeyValuePair<TKey, IList<TValue>>(key, values);
+                }
+
+                // Children come after a parent
+                if (pair.Value != null)
+                    _getVals(array, arrayIndex, pair.Value);
             }
         }
 
@@ -206,7 +270,7 @@ namespace Global.SearchTrie
         }
         /// <summary>Uses an Enumerator(<typeparamref name="TKeyPiece"/>)
         /// to advance through the <typeparamref name="TKey"/></summary>
-        private Node Remove(Node node, IEnumerator<TKeyPiece> enmrtr, out bool mod)
+        protected Node Remove(Node node, IEnumerator<TKeyPiece> enmrtr, out bool mod)
         {
             if (enmrtr.MoveNext())
             {
@@ -226,7 +290,7 @@ namespace Global.SearchTrie
             }
             else
             {
-                node.Value = default(TValue); // Assign the value
+                node.Values.Clear();
                 node.IsContainer = false;
                 mod = true;
             }
@@ -263,7 +327,15 @@ namespace Global.SearchTrie
         {
             return ContainsKey(root, key.GetEnumerator());
         }
-        private bool ContainsKey(Node node, IEnumerator<TKeyPiece> enmrtr)
+        /// <summary>
+        /// Determines whether the specified node contains key.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <param name="enmrtr">The enmrtr.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified node contains key; otherwise, <c>false</c>.
+        /// </returns>
+        protected bool ContainsKey(Node node, IEnumerator<TKeyPiece> enmrtr)
         {
             if (enmrtr.MoveNext())
             {
@@ -329,21 +401,38 @@ namespace Global.SearchTrie
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="nameof(arrayIndex)"/> is less than 0.</exception>
         /// <exception cref="ArgumentException">The number of elements in the source Trie is greater than the 
         /// available space from index to the end of the destination array.</exception>
-        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        public void CopyTo(KeyValuePair<TKey, IList<TValue>>[] array, int arrayIndex)
         {
             if (array == null) throw new ArgumentNullException(nameof(array));
             if (arrayIndex < 0) throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-            if (size - arrayIndex > array.Length) throw new ArgumentException("Not enough space in the given array.");
+            if (Count - arrayIndex > array.Length) throw new ArgumentException("Not enough space in the given array.");
 
-            foreach (KeyValuePair<TKey, TValue> pair in this)
+            _copyTo(array, ref arrayIndex, root);
+        }
+        protected void _copyTo(KeyValuePair<TKey, IList<TValue>>[] array, ref int arrayIndex, Node node)
+        {
+            foreach (KeyValuePair<TKeyPiece, Node> pair in node.Next)
             {
-                array[arrayIndex++] = pair;
+                // Check if this is an instance of a pair
+                if (pair.Value.IsContainer)
+                {
+                    TKey key = pair.Value.repValue;
+                    IList<TValue> values = pair.Value.Values;
+
+                    // set the current item
+                    array[arrayIndex++] = new KeyValuePair<TKey, IList<TValue>>(key, values);
+                }
+
+                // Children come after a parent
+                if (pair.Value != null)
+                    _copyTo(array, ref arrayIndex, pair.Value);
             }
         }
 
+
         #region --- IEnumeration Interface Functions ---
 
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        public IEnumerator<KeyValuePair<TKey, IList<TValue>>> GetEnumerator()
         {
             return new TernaryTrieEnumerator(this);
         }
@@ -353,27 +442,14 @@ namespace Global.SearchTrie
             return new TernaryTrieEnumerator(this);
         }
 
-        public class TernaryTrieEnumerator : IEnumerator<KeyValuePair<TKey, TValue>>
+        public class TernaryTrieEnumerator : IEnumerator<KeyValuePair<TKey, IList<TValue>>>
         {
             // A reference to the trie
             private TernarySearchTrie<TKey, TKeyPiece, TValue> trie;
 
             // Access controlled current value
-            private KeyValuePair<TKey, TValue> _c;
-            private object _currentLock;
-            private KeyValuePair<TKey, TValue> current
-            {
-                get
-                {
-                    lock (_currentLock)
-                        return _c;
-                }
-                set
-                {
-                    lock (_currentLock)
-                        _c = value;
-                }
-            }
+            private KeyValuePair<TKey, IList<TValue>> current;
+            object o = new object();
 
             // Recursive stack for iteration over trie
             private Thread iteratorThread;
@@ -381,17 +457,15 @@ namespace Global.SearchTrie
 
             // Disposing flag
             private bool disp = false;
+            private bool started = false;
+            private bool Done = false;
 
             /// <summary>
             /// Obtains the current item being referenced.
             /// </summary>
-            public KeyValuePair<TKey, TValue> Current
+            public KeyValuePair<TKey, IList<TValue>> Current
             {
-                get
-                {
-                    lock (_currentLock)
-                        return current;
-                }
+                get { return current; }
             }
             private object Current1
             {
@@ -425,27 +499,42 @@ namespace Global.SearchTrie
             {
                 foreach (KeyValuePair<TKeyPiece, Node> pair in node.Next)
                 {
-                    if (disp) return;
-
-                    // Recurse first
-                    if (pair.Value != null)
-                        threadFunction(pair.Value);
+                    if (disp || Done) return;
 
                     // Check if this is an instance of a pair
                     if (pair.Value.IsContainer)
                     {
                         TKey key = pair.Value.repValue;
-                        TValue value = pair.Value.Value;
+                        IList<TValue> values = pair.Value.Values;
 
                         // set the current item
-                        current = new KeyValuePair<TKey, TValue>(key, value);
+                        current = new KeyValuePair<TKey, IList<TValue>>(key, values);
+                        Monitor.Pulse(o);
+                        Monitor.Wait(o);
 
-                        // wait to be prompted to continue
-                        waitHandle.WaitOne();
-
-                        // reset and continue
-                        waitHandle.Reset();
                     }
+
+                    // Children come after a parent
+                    if (pair.Value != null)
+                        threadFunction(pair.Value);
+                }
+            }
+
+            /// <summary>
+            /// This starts the thread.
+            /// </summary>
+            private void ThreadInit()
+            {
+                Monitor.Enter(o);
+                try
+                {
+                    threadFunction(trie.root);
+                }
+                finally
+                {
+                    Done = true;
+                    Monitor.Pulse(o);
+                    Monitor.Exit(o);
                 }
             }
 
@@ -454,14 +543,14 @@ namespace Global.SearchTrie
             {
                 this.trie = trie;
                 this.trie.modified = false;
-                current = default(KeyValuePair<TKey, TValue>);
+                current = default(KeyValuePair<TKey, IList<TValue>>);
 
                 // Create a new Thread and initialize its stack. (Do not start)
-                iteratorThread = new Thread(() => { threadFunction(trie.root); });
+                iteratorThread = new Thread(ThreadInit);
             }
 
             /// <summary>
-            /// Prompts the next item to be referenced by Current.
+            /// Prompts the next item to be referenced by #Current.
             /// </summary>
             /// <returns></returns>
             public bool MoveNext()
@@ -470,27 +559,18 @@ namespace Global.SearchTrie
                 if (trie.modified)
                     throw new InvalidOperationException("The collection was modified after the enumerator was created.");
 
-                // If this is the first call to MoveNext() we need to start the iteratorThread.
-                if (iteratorThread.ThreadState == System.Threading.ThreadState.Unstarted)
-                    iteratorThread.Start();
+                // Start if unstarted
+                if (!started) { iteratorThread.Start(); started = true; }
 
                 // Otherwise we will signal the thread to continue its event stack operations.
-                else
-                    waitHandle.Set();
-
-                // We need to wait until the thread is finished Running.
-                while (iteratorThread.ThreadState == System.Threading.ThreadState.Running)
-                    ;
-
-                // NOTE: Threads can be in multiple states so be careful using != to test for state.
+                lock (o)
+                {
+                    Monitor.Pulse(o);
+                    Monitor.Wait(o);
+                }
 
                 // Figure out what to return based on the thread state.
-                if (iteratorThread.ThreadState == System.Threading.ThreadState.Stopped)
-                    return false;
-                else if (iteratorThread.ThreadState == System.Threading.ThreadState.WaitSleepJoin)
-                    return true;
-                else
-                    throw new ThreadStateException(iteratorThread.ThreadState.ToString());
+                return !Done;
             }
 
             /// <summary>
@@ -499,10 +579,10 @@ namespace Global.SearchTrie
             public void Reset()
             {
                 trie.modified = false;
-                current = default(KeyValuePair<TKey, TValue>);
+                current = default(KeyValuePair<TKey, IList<TValue>>);
 
                 // Create a new Thread and initialize its stack. (Do not start)
-                iteratorThread = new Thread(() => { threadFunction(trie.root); });
+                iteratorThread = new Thread(ThreadInit);
             }
 
             #region IDisposable Support

@@ -40,14 +40,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BinarySearchTree.cs" />
+    <Compile Include="PatternDictionary.cs" />
     <Compile Include="RedBlackTree.cs" />
     <Compile Include="TernaryTrie.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ISearchTrie.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Documentation.docx" />
+    <None Include="doc\Documentation.docx" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="doc\smrender.js" />
+    <Content Include="doc\stylesheet.css" />
+    <Content Include="doc\ternary_trie.html" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
