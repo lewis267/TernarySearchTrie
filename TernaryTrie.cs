@@ -236,16 +236,22 @@ namespace Global.SearchTrie
             }
         }
 
+        IList<TValue> IDictionary<TKey, IList<TValue>>.this[TKey key]
+        {
+            get => throw new NotImplementedException();
+            set => throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Obtains the <typeparamref name="TValue"/> for the given <typeparamref name="TKey"/>.
         /// </summary>
         /// <param name="key"></param>
         /// <returns>The <typeparamref name="TValue"/>for the given <typeparamref name="TKey"/>.</returns>
-        public TValue this[TKey key]
+        public IList<TValue> this[TKey key]
         {
             get
             {
-                return Search(key)[0];
+                return Search(key);
             }
             set
             {
@@ -363,19 +369,19 @@ namespace Global.SearchTrie
         /// <param name="key">The key to check for.</param>
         /// <param name="value">The value to assigned to.</param>
         /// <returns>True if found.</returns>
-        public bool TryGetValue(TKey key, out TValue value)
+        public bool TryGetValue(TKey key, out IList<TValue> value)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
             List<TValue> vals = Search(key);
             if (vals.Count > 0)
             {
-                value = vals[0];
+                value = vals;
                 return true;
             }
             else
             {
-                value = default(TValue);
+                value = default(IList<TValue>);
                 return false;
             }
         }
@@ -440,6 +446,26 @@ namespace Global.SearchTrie
         IEnumerator IEnumerable.GetEnumerator()
         {
             return new TernaryTrieEnumerator(this);
+        }
+
+        public void Add(TKey key, IList<TValue> value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Add(KeyValuePair<TKey, IList<TValue>> item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Contains(KeyValuePair<TKey, IList<TValue>> item)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Remove(KeyValuePair<TKey, IList<TValue>> item)
+        {
+            throw new NotImplementedException();
         }
 
         public class TernaryTrieEnumerator : IEnumerator<KeyValuePair<TKey, IList<TValue>>>

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Global.SearchTrie
 {
@@ -28,7 +29,7 @@ namespace Global.SearchTrie
         /// <summary>
         /// Insert an item into the data structure.
         /// </summary>
-        /// <param name="item"></param>
+        /// <param name="identifier"></param>
         new void Add(string identifier);
         /// <summary>
         /// Insert an item into the data structure.
@@ -45,7 +46,7 @@ namespace Global.SearchTrie
         /// <summary>
         /// Determines whether the string pattern matches any items.
         /// </summary>
-        /// <param name="identifier"></param>
+        /// <param name="pattern"></param>
         /// <returns></returns>
         new bool Contains(string pattern);
 
@@ -59,7 +60,7 @@ namespace Global.SearchTrie
         /// <param name="arrayIndex">The zero-based index in array at
         /// which copying begins.</param>
         /// <exception cref="ArgumentNullException">When array is null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">When <paramref name="index"/> is less than zero.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">When <paramref name="arrayIndex"/> is less than zero.</exception>
         /// <exception cref="ArgumentException">When <paramref name="array"/> is multidimensional.</exception>
         new void CopyTo(string[] array, int arrayIndex);
 
