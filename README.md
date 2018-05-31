@@ -13,7 +13,7 @@ The first type argument defines the pieces of the 'key' in the Dictionary-like `
 In this manner, one can store sequences of uncommon or custom classes in the Trie's structure. Eg.:
 ```C#
 var ByteSequenceTrie = new TernarySearchTrie<byte, Message>();
-var IntervalTrie = new TernarySearchTrie<Steps, Action>();
+var IntervalTrie = new TernarySearchTrie<Step, Action>();
 ```
 
 ## Collisions
